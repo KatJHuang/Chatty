@@ -26,6 +26,8 @@
 
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 
+char* my_port;
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -36,6 +38,16 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+void matriculate(int sockfd, char* msg){
+    msg = strcat("I'm new: ", my_port);
+    int len, bytes_sent;
+    
+    len = strlen(msg);
+    bytes_sent = send(sockfd, msg, len, 0);
+    
+    free(msg);
+}
+
 int main(int argc, char *argv[])
 {
     int sockfd, numbytes;
@@ -43,6 +55,8 @@ int main(int argc, char *argv[])
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
+    
+    my_port = PORT;
     
     if (argc != 2) {
         fprintf(stderr,"usage: client hostname\n");
@@ -71,6 +85,8 @@ int main(int argc, char *argv[])
             perror("client: connect");
             continue;
         }
+        
+        matriculate(sockfd, "");
         
         break;
     }
