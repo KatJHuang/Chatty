@@ -23,10 +23,10 @@
 #include <arpa/inet.h>
 
 #define PORT "3490" // the port client will be connecting to
-
+#define MAX_INPUT_LEN 1024
 #define MAXDATASIZE 100 // max number of bytes we can get at once
 
-//char* my_port;
+char my_port[MAX_INPUT_LEN];
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -40,15 +40,21 @@ void *get_in_addr(struct sockaddr *sa)
 
 void matriculate(int sockfd, char* msg){
     printf("inside matriculate\n");     
-    printf(msg);
-    printf(" length = %d\n", strlen(msg));
-    // msg = "I'm new";
-    int len, bytes_sent;
+    printf("%s", msg);
+    printf(" length = %lu\n", strlen(msg));
     
+    int len, bytes_sent;
     len = strlen(msg);
 
     bytes_sent = send(sockfd, msg, len, 0);
- 
+}
+
+void broadcast(int sockfd, char* msg, char* my_port){
+    int len, bytes_sent;
+    strcat(msg, my_port);
+    len = strlen(msg);
+    
+    bytes_sent = send(sockfd, msg, len, 0);
 }
 
 int main(int argc, char *argv[])
@@ -59,8 +65,9 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
     
-    printf("before seg fault.");
-    // my_port = PORT;
+    printf("about to copy.\n");
+    strcpy(my_port, "3490");
+    printf("la done copy.\n");
     
     if (argc != 2) {
         fprintf(stderr,"usage: client hostname\n");
@@ -89,11 +96,15 @@ int main(int argc, char *argv[])
             perror("client: connect");
             continue;
         }
-	
-	printf("before the new matriculate function\n");        
-	char* msg = "I'm new";
-	matriculate(sockfd, msg);
         
+        char* msg = "I'm really new and my port is 3094";
+        matriculate(sockfd, my_port);
+        
+        char op_sel[MAX_INPUT_LEN];
+        char operand[MAX_INPUT_LEN];
+        scanf("%s %s", op_sel, operand);
+        
+        broadcast(sockfd, operand, my_port);
         break;
     }
     

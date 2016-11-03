@@ -24,8 +24,55 @@
 #include <signal.h>
 
 #define PORT "3490"  // the port users will be connecting to
+#define MAX_BUF_LEN 1024
 
 #define BACKLOG 10     // how many pending connections queue will hold
+
+typedef struct Client{
+    char port[256];
+    char name[256];
+}Client;
+
+typedef struct Client_list_node{
+    Client this;
+    struct Client_list_node* next;
+}Node;
+
+void push(Node **head, Client client){
+    Node *client_node = malloc(sizeof(Node));
+    client_node->this = client;
+    client_node->next = *head;
+    *head = client_node;
+}
+
+Node* search(Node *head, char* name){
+    Node *curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->this.name, name))
+            return curr;
+        curr = curr->next;
+    }
+    return NULL;
+}
+
+Node* delete(Node *head, char* name){
+    Node *prev = NULL;
+    Node *curr = head;
+    while (curr != NULL) {
+        if (strcmp(curr->this.name, name)){
+            if (curr == head){
+                head = curr->next;
+            }
+            else{
+                prev->next = curr->next;
+            }
+            return curr;
+        }
+        prev = curr;
+        curr = curr->next;
+    }
+    return NULL;
+}
 
 void sigchld_handler(int s)
 {
@@ -48,8 +95,19 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void matriculate(){
+void matriculate(int sockfd){
+    printf("inside matriculate - server\n");
+    char* buf;
+    int length = recv(sockfd, buf, MAX_BUF_LEN, 0);
+    printf("string: %s length = %d\n", buf, length);
+}
 
+void broadcast(int sockfd){
+    printf("inside broadcast - server\n");
+    char* buf;
+    
+    int length = recv(sockfd, buf, MAX_BUF_LEN, 0);
+    printf("broadcast: %s length = %d\n", buf, length);
 }
 
 int main(void)
@@ -135,6 +193,10 @@ int main(void)
             close(sockfd); // child doesn't need the listener
             if (send(new_fd, "Hello, world!", 13, 0) == -1)
                 perror("send");
+            
+            matriculate(new_fd);
+            broadcast(new_fd);
+            
             close(new_fd);
             exit(0);
         }
