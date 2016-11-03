@@ -48,6 +48,10 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
+void matriculate(){
+
+}
+
 int main(void)
 {
     int sockfd, new_fd;  // listen on sock_fd, new connection on new_fd
