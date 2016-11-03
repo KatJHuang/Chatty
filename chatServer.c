@@ -34,13 +34,25 @@ typedef struct Client{
 }Client;
 
 typedef struct Client_list_node{
-    Client this;
+    Client client;
     struct Client_list_node* next;
 }Node;
 
+void print_node(Node *node){
+    printf("port #: %s\t", node->client.port);
+    printf("name: %s\n", node->client.name);
+}
+
+void print_all_nodes(Node *node){
+    while (node != NULL){
+        print_node(node);
+        node = node->next;
+    }
+}
+
 void push(Node **head, Client client){
     Node *client_node = malloc(sizeof(Node));
-    client_node->this = client;
+    client_node->client = client;
     client_node->next = *head;
     *head = client_node;
 }
@@ -48,20 +60,23 @@ void push(Node **head, Client client){
 Node* search(Node *head, char* name){
     Node *curr = head;
     while (curr != NULL) {
-        if (strcmp(curr->this.name, name))
+        if (strcmp(curr->client.name, name) == 0)
             return curr;
         curr = curr->next;
     }
     return NULL;
 }
 
-Node* delete(Node *head, char* name){
+Node* delete(Node **head, char* name){
     Node *prev = NULL;
-    Node *curr = head;
+    Node *curr = *head;
     while (curr != NULL) {
-        if (strcmp(curr->this.name, name)){
-            if (curr == head){
-                head = curr->next;
+        if (strcmp(curr->client.name, name) == 0){
+            if (curr == *head){
+                *head = (*head)->next;
+                printf("new head\n");
+                print_node(*head);
+                printf("yup\n");
             }
             else{
                 prev->next = curr->next;
@@ -120,6 +135,36 @@ int main(void)
     int yes=1;
     char s[INET6_ADDRSTRLEN];
     int rv;
+    
+    Node *head = NULL;
+    
+    char names[3][256];
+    strcpy(names[0], "hey");
+    strcpy(names[1], "hi");
+    strcpy(names[2], "hello");
+    
+    int i = 0;
+    for (i = 0; i < 3; i++){
+        Client *new_client = malloc(sizeof(Client));
+        strcpy(new_client->port, "1234");
+        strcpy(new_client->name, names[i]);
+        
+        push(&head, *new_client);
+    }
+    print_all_nodes(head);
+    
+    printf("searching a node\n");
+    char *name = "hi";
+    Node* search_result = search(head, name);
+    if (search_result != NULL)
+        print_node(search_result);
+    else
+        printf("no node with name %s is found\n", name);
+    
+    printf("delete a node\n");
+    Node *deleted = delete(&head, "hello");
+    print_all_nodes(head);
+    
     
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
