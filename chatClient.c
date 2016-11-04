@@ -38,10 +38,21 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void matriculate(int sockfd, char* msg){
-    printf("inside matriculate\n");     
-    printf("%s", msg);
-    printf(" length = %lu\n", strlen(msg));
+void matriculate(int sockfd, char* name_, char* port_number_){
+    printf("👶 Matriculate \n");
+    
+    char msg[MAX_INPUT_LEN] = "0 ";
+    char separator[2] = " ";
+    
+    char name[256];
+    strcpy(name, name_);
+    
+    char port_number[256];
+    strcpy(port_number, port_number_);
+    
+    strcat(name, separator);
+    strcat(msg, name);
+    strcat(msg, port_number);
     
     int len, bytes_sent;
     len = strlen(msg);
@@ -49,11 +60,23 @@ void matriculate(int sockfd, char* msg){
     bytes_sent = send(sockfd, msg, len, 0);
 }
 
-void broadcast(int sockfd, char* msg, char* my_port){
-    int len, bytes_sent;
-    strcat(msg, my_port);
-    len = strlen(msg);
+void broadcast(int sockfd, char* my_msg_, char* my_name_){
+    char msg[MAX_INPUT_LEN] = "1 ";
+    char separator[2] = " ";
     
+    char my_name[256];
+    strcpy(my_name, my_name_);
+    
+    char my_msg[256];
+    strcpy(my_msg, my_msg_);
+    
+    strcat(my_name, separator);
+    strcat(msg, my_name);
+    strcat(msg, my_msg);
+    
+    int len, bytes_sent;
+    len = strlen(msg);
+    printf("📡 broadcast: %s \n", msg);
     bytes_sent = send(sockfd, msg, len, 0);
 }
 
@@ -65,20 +88,22 @@ int main(int argc, char *argv[])
     int rv;
     char s[INET6_ADDRSTRLEN];
     
-    printf("about to copy.\n");
-    strcpy(my_port, "3490");
-    printf("la done copy.\n");
+    char client_name[256];
+    char client_port[256];
     
-    if (argc != 2) {
-        fprintf(stderr,"usage: client hostname\n");
+    strcpy(client_name, argv[1]);
+    strcpy(client_port, argv[2]);
+    
+    if (argc != 3) {
+        fprintf(stderr,"usage: client name port number\n");
         exit(1);
     }
     
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
-    
-    if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
+    char IP_addr[256] = "127.0.0.1";
+    if ((rv = getaddrinfo(IP_addr, PORT, &hints, &servinfo)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
         return 1;
     }
@@ -97,14 +122,14 @@ int main(int argc, char *argv[])
             continue;
         }
         
-        char* msg = "I'm really new and my port is 3094";
-        matriculate(sockfd, my_port);
         
-        char op_sel[MAX_INPUT_LEN];
-        char operand[MAX_INPUT_LEN];
-        scanf("%s %s", op_sel, operand);
         
-        broadcast(sockfd, operand, my_port);
+        
+        // int sockfd, char* name, char* port_number
+        matriculate(sockfd, client_name, client_port);
+        
+        broadcast(sockfd, "hey", client_name);
+        
         break;
     }
     
@@ -118,15 +143,24 @@ int main(int argc, char *argv[])
     printf("client: connecting to %s\n", s);
     
     freeaddrinfo(servinfo); // all done with this structure
-    
-    if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-        perror("recv");
-        exit(1);
+    for(;;){
+        
+        broadcast(sockfd, "hey", client_name);
+        
+        if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
+            perror("recv");
+            exit(1);
+        }
+        buf[numbytes] = '\0';
+        printf("client: received '%s'\n",buf);
+        
+        
+        char op_sel[MAX_INPUT_LEN];
+        char operand[MAX_INPUT_LEN];
+        scanf("%s %s", op_sel, operand);
+        
+        //broadcast(sockfd, operand, client_name);
     }
-    
-    buf[numbytes] = '\0';
-    
-    printf("client: received '%s'\n",buf);
     
     close(sockfd);
     

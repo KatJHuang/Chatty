@@ -99,28 +99,60 @@ Node* delete(Node **head, char* name){
 
 //======== SUPPORTED FUNCTIONS OF SERVER =========
 
-void matriculate(int sockfd){
-    printf("inside matriculate - server\n");
-    char* buf;
-    int length = recv(sockfd, buf, MAX_BUF_LEN, 0);
-    printf("string: %s length = %d\n", buf, length);
+void matriculate(char* name, char* port_number, Node** head){
+    printf("Matriculation: \n");
+    
+    Node* search_result = search(*head, name);
+    if (search_result != NULL){
+        printf("😵 New client clashes with this existing client: \n");
+        print_node(search_result);
+    }
+    else{
+        Client *new_client = malloc(sizeof(Client));
+        strcpy(new_client->port, port_number);
+        strcpy(new_client->name, name);
+        
+        push(head, *new_client);
+        
+        printf("🐿 We have a new client! \n");
+        print_all_nodes(*head);
+    }
 }
 
-void broadcast(int sockfd){
-    printf("inside broadcast - server\n");
-    char* buf;
+void drop_out(char* name, Node** head){
+    Node* search_result = search(*head, name);
+    if (search_result != NULL){
+        printf("☹️ This client will be removed: \n");
+        print_node(search_result);
+    }
+    printf("👨‍👩‍👧‍👦 All existing clients: \n");
+    print_all_nodes(*head);
+}
+
+void broadcast(char* name, char* msg, int fdmax, fd_set *master, int listener){
+    printf("📡 From %s broadcast: %s\n", name, msg);
     
-    int length = recv(sockfd, buf, MAX_BUF_LEN, 0);
-    printf("broadcast: %s length = %d\n", buf, length);
+    int j;
+    for(j = 0; j <= fdmax; j++) {
+        // send to everyone!
+        if (FD_ISSET(j, master)) {
+            // except the listener and ourselves
+            if (j != listener) {
+                if (send(j, msg, strlen(msg), 0) == -1) {
+                    perror("send");
+                }
+            }
+        }
+    }
 }
 //======== END OF SUPPORTED FUNCTIONS OF SERVER =========
 
 int main(void)
 {
     
-    // ======== TESTING LINKED LIST ========
     Node *head = NULL;
-    
+    // ======== TESTING LINKED LIST ========
+    /*
     char names[3][256];
     strcpy(names[0], "hey");
     strcpy(names[1], "hi");
@@ -146,7 +178,8 @@ int main(void)
     
     printf("delete a node\n");
     Node *deleted = delete(&head, "hello");
-    print_all_nodes(head);
+    print_all_nodes(head); 
+    */
     // ======== DONE TESTING LINKED LIST ========
     
     
@@ -265,17 +298,24 @@ int main(void)
                         close(i); // bye!
                         FD_CLR(i, &master); // remove from master set
                     } else {
-                        // we got some data from a client
-                        for(j = 0; j <= fdmax; j++) {
-                            // send to everyone!
-                            if (FD_ISSET(j, &master)) {
-                                // except the listener and ourselves
-                                if (j != listener && j != i) {
-                                    if (send(j, buf, nbytes, 0) == -1) {
-                                        perror("send");
-                                    }
-                                }
-                            }
+                        // 🤖 handle client requests
+                        
+                        char *op_sel = strtok(buf, " ");
+                        
+                        if (strcmp(op_sel, "0") == 0){ // 0 - matriculate
+                            char *name = strtok(NULL, " ");
+                            char *port = strtok(NULL, " ");
+                            matriculate(name, port, &head);
+                        }
+                        else if (strcmp(op_sel, "1") == 0){ // 1 - broadcast
+                            printf("broadcast a message - server\n");
+                            char* name = strtok(NULL, " ");
+                            char* msg = strtok(NULL, " ");
+                            broadcast(name, msg, fdmax, &master, listener);
+                        }
+                        else if (strcmp(op_sel, "4") == 0){
+                            char* name = strtok(NULL, " ");
+                            drop_out(name, &head);
                         }
                     }
                 } // END handle data from client
