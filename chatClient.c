@@ -76,14 +76,42 @@ void broadcast(int sockfd, char* my_msg_, char* my_name_){
     
     int len, bytes_sent;
     len = strlen(msg);
-    printf("📡 broadcast: %s \n", msg);
+    printf("📡 I want to broadcast: %s \n", msg);
     bytes_sent = send(sockfd, msg, len, 0);
+}
+
+void unicast(int sockfd, char* my_msg_, char* my_name_, char* your_name_){
+    char msg[MAX_INPUT_LEN] = "2 ";
+    char separator[2] = " ";
+    
+    char my_name[256];
+    strcpy(my_name, my_name_);
+    
+    char your_name[256];
+    strcpy(your_name, your_name_);
+    
+    char my_msg[256];
+    strcpy(my_msg, my_msg_);
+    
+    strcat(my_name, separator);
+    strcat(your_name, separator);
+    strcat(msg, my_name);
+    strcat(msg, your_name);
+    strcat(msg, my_msg);
+    
+    int len, bytes_sent;
+    len = strlen(msg);
+    printf("📡 I want to say '%s' to %s \n", my_msg, your_name);
+    bytes_sent = send(sockfd, msg, len, 0);
+}
+
+void request_client_list(){
+    
 }
 
 int main(int argc, char *argv[])
 {
     int sockfd, numbytes;
-    char buf[MAXDATASIZE];
     struct addrinfo hints, *servinfo, *p;
     int rv;
     char s[INET6_ADDRSTRLEN];
@@ -123,12 +151,9 @@ int main(int argc, char *argv[])
         }
         
         
-        
-        
         // int sockfd, char* name, char* port_number
         matriculate(sockfd, client_name, client_port);
         
-        // broadcast(sockfd, "hey", client_name);
         
         break;
     }
@@ -150,9 +175,23 @@ int main(int argc, char *argv[])
         char operand[MAX_INPUT_LEN];
         scanf("%s %s", op_sel, operand);
         
-        printf("client sends broadcast request... \n");
-        broadcast(sockfd, operand, client_name);
+        if (strcmp(op_sel, "broadcast") == 0){
+            printf("client sends broadcast request... \n");
+            broadcast(sockfd, operand, client_name);
+        }
+        else if (strcmp(op_sel, "list") == 0){
+            
+        }
+        else if (strcmp(op_sel, "exit") == 0){
+            
+        }
+        else{
+            //unicast(int sockfd, char* my_msg_, char* my_name_, char* your_name_)
+            printf("client sends unicast request... \n");
+            unicast(sockfd, operand, client_name, op_sel);
+        }
         
+        char buf[MAXDATASIZE];
         if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
             perror("recv");
             exit(1);

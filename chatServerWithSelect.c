@@ -160,6 +160,55 @@ void broadcast(char* name, char* msg, int fdmax, fd_set *master, int listener){
         }
     }
 }
+
+void unicast(char* src_name_, char* dest_name_, char* msg, int src_sockfd, Node** head){
+    // preparing the message for unicast
+    char unicast_msg[1024];
+    char separator[256] = " says: ";
+    
+    char src_name[512]; // sender of message
+    strcpy(src_name, src_name_);
+    
+    char dest_name[512]; // recipient of message
+    strcpy(dest_name, dest_name_);
+    
+    char client_msg[512];
+    strcpy(client_msg, msg);
+    
+    strcat(src_name, separator);
+    strcat(unicast_msg, src_name);
+    strcat(unicast_msg, client_msg); // "sender says: ..."
+    // done preparing the message for unicast
+    
+    Node* search_result = search(*head, dest_name); // find the recipient of the message
+    if (search_result != NULL){
+        printf("🌚 client message will go to: \n");
+        print_node(search_result);
+        printf("message = %s\n", unicast_msg);
+        
+        // send message to recipient
+        int dest_sockfd = search_result->client.sockfd;
+        if (send(dest_sockfd, unicast_msg, strlen(unicast_msg), 0) == -1) {
+            perror("send");
+        }
+        
+        // acknowledge sender the successful delivery
+        char success_msg[256] = "😄 Your message will be delivered!";
+        if (send(src_sockfd, success_msg, strlen(success_msg), 0) == -1) {
+            perror("send");
+        }
+    }
+    else{
+        printf("😵 %s can't be found! \n", dest_name);
+        
+        // acknowledge sender the failure
+        char fail_msg[256] = "😵 Delivery failed!";
+        if (send(src_sockfd, fail_msg, strlen(fail_msg), 0) == -1) {
+            perror("send");
+        }
+        return;
+    }
+}
 //======== END OF SUPPORTED FUNCTIONS OF SERVER =========
 
 int main(void)
@@ -323,12 +372,23 @@ int main(void)
                             matriculate(name, port, i, &head);
                         }
                         else if (strcmp(op_sel, "1") == 0){ // 1 - broadcast
-                            printf("broadcast a message - server\n");
                             char* name = strtok(NULL, " ");
                             char* msg = strtok(NULL, " ");
                             broadcast(name, msg, fdmax, &master, listener);
                         }
-                        else if (strcmp(op_sel, "4") == 0){
+                        else if(strcmp(op_sel, "2") == 0){ // 2 - unicast
+                            char* src = strtok(NULL, " ");
+                            char* dest = strtok(NULL, " ");
+                            char* msg = strtok(NULL, " ");
+                            // unicast(char* name, char* msg, int src_sockfd, Node **head)
+                            printf("after receiving client request: %s", msg);
+                            unicast(src, dest, msg, i, &head);
+                        }
+                        else if (strcmp(op_sel, "3") == 0){
+                            char* name = strtok(NULL, " ");
+                            drop_out(name, &head);
+                        }
+                        else if (strcmp(op_sel, "4") == 0){ // 4 - drop_out
                             char* name = strtok(NULL, " ");
                             drop_out(name, &head);
                         }
