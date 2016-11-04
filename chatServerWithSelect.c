@@ -38,6 +38,7 @@ void *get_in_addr(struct sockaddr *sa)
 typedef struct Client{
     char port[256];
     char name[256];
+    int sockfd;
 }Client;
 
 typedef struct Client_list_node{
@@ -46,6 +47,7 @@ typedef struct Client_list_node{
 }Node;
 
 void print_node(Node *node){
+    printf("sockfd: %d\t", node->client.sockfd);
     printf("port #: %s\t", node->client.port);
     printf("name: %s\n", node->client.name);
 }
@@ -99,7 +101,7 @@ Node* delete(Node **head, char* name){
 
 //======== SUPPORTED FUNCTIONS OF SERVER =========
 
-void matriculate(char* name, char* port_number, Node** head){
+void matriculate(char* name, char* port_number, int sockfd, Node** head){
     printf("Matriculation: \n");
     
     Node* search_result = search(*head, name);
@@ -111,6 +113,7 @@ void matriculate(char* name, char* port_number, Node** head){
         Client *new_client = malloc(sizeof(Client));
         strcpy(new_client->port, port_number);
         strcpy(new_client->name, name);
+        new_client->sockfd = sockfd;
         
         push(head, *new_client);
         
@@ -130,15 +133,27 @@ void drop_out(char* name, Node** head){
 }
 
 void broadcast(char* name, char* msg, int fdmax, fd_set *master, int listener){
-    printf("📡 From %s broadcast: %s\n", name, msg);
+    char broadcast_msg[1024];
+    char separator[256] = " broadcasts: ";
     
+    char client_name[512];
+    strcpy(client_name, name);
+    
+    char client_msg[512];
+    strcpy(client_msg, msg);
+    
+    strcat(client_name, separator);
+    strcat(broadcast_msg, client_name);
+    strcat(broadcast_msg, client_msg);
+    
+    printf("📡 From %s broadcast: %s\n", name, broadcast_msg);
     int j;
     for(j = 0; j <= fdmax; j++) {
         // send to everyone!
         if (FD_ISSET(j, master)) {
             // except the listener and ourselves
             if (j != listener) {
-                if (send(j, msg, strlen(msg), 0) == -1) {
+                if (send(j, broadcast_msg, strlen(broadcast_msg), 0) == -1) {
                     perror("send");
                 }
             }
@@ -305,7 +320,7 @@ int main(void)
                         if (strcmp(op_sel, "0") == 0){ // 0 - matriculate
                             char *name = strtok(NULL, " ");
                             char *port = strtok(NULL, " ");
-                            matriculate(name, port, &head);
+                            matriculate(name, port, i, &head);
                         }
                         else if (strcmp(op_sel, "1") == 0){ // 1 - broadcast
                             printf("broadcast a message - server\n");

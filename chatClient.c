@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
         // int sockfd, char* name, char* port_number
         matriculate(sockfd, client_name, client_port);
         
-        broadcast(sockfd, "hey", client_name);
+        // broadcast(sockfd, "hey", client_name);
         
         break;
     }
@@ -140,26 +140,28 @@ int main(int argc, char *argv[])
     
     inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
               s, sizeof s);
-    printf("client: connecting to %s\n", s);
+    //printf("client: connecting to %s\n", s);
     
     freeaddrinfo(servinfo); // all done with this structure
     for(;;){
         
-        broadcast(sockfd, "hey", client_name);
+        //broadcast(sockfd, "hey", client_name);
+        char op_sel[MAX_INPUT_LEN];
+        char operand[MAX_INPUT_LEN];
+        scanf("%s %s", op_sel, operand);
+        
+        printf("client sends broadcast request... \n");
+        broadcast(sockfd, operand, client_name);
         
         if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
             perror("recv");
             exit(1);
         }
-        buf[numbytes] = '\0';
-        printf("client: received '%s'\n",buf);
+        else{
+            buf[numbytes] = '\0';
+            printf("✨ %s\n",buf);
+        }
         
-        
-        char op_sel[MAX_INPUT_LEN];
-        char operand[MAX_INPUT_LEN];
-        scanf("%s %s", op_sel, operand);
-        
-        //broadcast(sockfd, operand, client_name);
     }
     
     close(sockfd);
